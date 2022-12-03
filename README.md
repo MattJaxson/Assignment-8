@@ -1,16 +1,13 @@
 # Homework 8 
 
-This program, x86.py, allows you to see how different thread inter- leavings either cause or avoid race conditions. See the README for details on how the program works and its basic inputs, then answer the questions below.
-
-## Questions
+## Questions:
 
 1) To start, let’s examine a simple program, “loop.s”. First, just look at the program, and see if you can understand it: cat loop.s. Then, run it with these arguments:
 ```bash
 ./x86.py -p loop.s -t 1 -i 100 -R dx
 ```
-This specifies a single thread, an interrupt every 100 instructions, and tracing of register %dx. Can you figure out what the value of %dx will be during the run? Once you have, run the same above and use the -c flag to check your answers; note the answers, on the left, show the value of the register (or memory value) after the instruction on the right has run.
 
-#### Answer
+#### Answer:
 
 Simply, the `sub  $1,%dx` subtracts `dx` value by 1, leaving it at -1.
 Then when it reaches `test $0,%dx` it is compared to and on `jgte .top` it's comparison result is evaluated, for which it will fail (it is *less* than 0) so it will continue onto `halt`. It will start at `0` (default) and change to `-1` for the next command and stay that way.
@@ -27,12 +24,8 @@ Then when it reaches `test $0,%dx` it is compared to and on `jgte .top` it's com
 ```bash
 ./x86.py -p loop.s -t 2 -i 100 -a dx=3,dx=3 -R dx
 ```
-This specifies two threads, and initializes each %dx register to 3. What values will %dx see? Run with the -c flag to see the answers. Does the presence of multiple threads affect anything about your calculations? Is there a race condition in this code?
 
-#### Answer
-
-Nothing will change for the *inital portion* of the results: they are completely sequential / series, and not run in parallel, which does not create race conditions. The switch will not happen until halt.
-However, while there may not be any race conditions, the results for each thread will change. Since the initial value of `dx` has been changed to 3, the `jgte .top` statement will evaluate and cause the "loop" to continue from the top. This will occur 3 times until the value of `dx` is -1 (less than 0).
+#### Answer:
 
 ```bash
 $ ./x86.py -p loop.s -t 2 -i 100 --argv=dx=3,dx=3 -R dx -c
@@ -85,11 +78,8 @@ ARG verbose False
 ```bash
 ./x86.py -p loop.s -t 2 -i 3 -r -a dx=3,dx=3 -R dx
 ```
-This makes the interrupt interval quite small and random; use different seeds with -s to see different interleavings. Does the frequency of interruption change anything about this program?
 
-### Answer
-
-This *does* change things. Unlike the previous question, the smaller interval will break the threads into smaller pieces that all manipulate the `dx` register. This will happen whenever the interrupt interval is less than the number of steps required to complete/halt the program.
+### Answer:
 
 ```bash
 $ ./x86.py -p loop.s -t 2 -i 3 -r -a dx=3,dx=3 -R dx -c
@@ -155,11 +145,11 @@ ARG verbose False
 ```
 What value is found in x (i.e., at memory address 2000) throughout the run? Use -c to check your answer.
 
-#### Answer
+#### Answer:
 
-After examining the source code of `looping-race-nolock.s`, I predict the value will be 1, after the execution of the step `add $1, %ax`.
+The value is 1, after the execution of the step `add $1, %ax`.
 
-Checking this, I find I am correct:
+Proof:
 
 ```bash
 $ ./x86.py -p looping-race-nolock.s -t 1 -M 2000 -c
@@ -195,7 +185,7 @@ Now run with multiple iterations and threads:
 ```
 Do you understand why the code in each thread loops three times? What will the final value of x be?
 
-### Answer
+### Answer:
 
 
 The statement `jgt .top` after `test $0, %bx`, is testing if `bx` is greater than 0. Since the intial value of `bx` is 3, and is decremented by 1 with `sub $1, %bx`, this effectively creates a loop with 3 iterations. Both the threads will loop 3 times and each iteration increments the value at address 2000 by 1, therefore the final value is 6 (`2*3*1=6`).
@@ -206,9 +196,9 @@ The statement `jgt .top` after `test $0, %bx`, is testing if `bx` is greater tha
 ```
 Then change the random seed, setting -s 1, then -s 2, etc. Can you tell, just by looking at the thread interleaving, what the final value of x will be? Does the exact location of the interrupt matter? Where can it safely occur? Where does an interrupt cause trouble? In other words, where is the critical section exactly?
 
-#### Answer
+#### Answer:
 
-Yes, if you step through the interleaving thread's statements to be executed, you could determine the final value of x. The value should be 2 (when run threads sequentially).
+Yes, if you step through the interleaving thread's statements to be executed, you can determine the final value of x. The value should be 2 (when run threads sequentially).
 The critical section that must not be interrupted is between `sub $1, %ax` and `test $0, %bx`. This is because the `sub $1, %ax` statement will decrement the `ax` register and if the following `test $0, %bx` is interrupted then the other thread could *also* run `sub $1, %bx`, and that means that whole iteration will be skipped (`bx` went from 2 to 0, for instance, decremented twice, without being compared).
 
 For example:
@@ -257,7 +247,7 @@ ARG verbose False
 ```
 See if you can guess what the final value of the shared variable x will be. What about when you change -i 2, -i 3, etc.? For which interrupt intervals does the program give the “correct” final answer?
 
-#### Answer
+#### Answer:
 
 Guess: final value of `2000` is 1.
 Correct!
@@ -315,7 +305,7 @@ For interrupt intervals greater than or equal to 3 given the correct answer of 2
 
 8) Now run the same code for more loops (e.g.,set `-a bx=100`). What interrupt intervals, set with the -i flag, lead to a “correct” outcome? Which intervals lead to surprising results?
 
-#### Answer
+#### Answer:
 
 The "correct" result is 200.
 Since there are more loops, now there is more opportunity for the critical section to be interrupted.
@@ -333,7 +323,7 @@ Now switch the inputs:
 ```
 How do the threads behave? What is thread 0 doing? How would changing the interrupt interval (e.g., -i 1000, or perhaps to use random intervals) change the trace outcome? Is the program efficiently using the CPU?
 
-#### Answer
+#### Answer:
 
 The value at location 2000 is being used as a flag to determine if the `signaller` or `waiter` should execute.
 
